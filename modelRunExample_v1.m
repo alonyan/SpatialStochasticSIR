@@ -38,9 +38,9 @@ figure(gcf)
 VGR = 1/6;%viral growth rate
 VI = 1/2; %viral infectivity
 
-p = [0.05 0];
+p = [0.025 0];
 
-infDeathRate = 1/24;
+infDeathRate = 1/4;
 basalDeathRate=polyval(p,infDeathRate);%effect of TNF on deaths
 
 %infDeathRate = 1/8;

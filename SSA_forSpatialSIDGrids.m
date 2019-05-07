@@ -11,7 +11,11 @@ S = [ -1 -1  0 ;...
 %reactions: infection, false positive death, infected death
 
 %number of cells
-nC = numel(x)/4;
+global nReactions nSpecies
+nReactions = 3;
+nSpecies = 4;
+
+nC = numel(x)/nSpecies;
 
 %make full stoichiometry matrix, block diagonal of single cell stoch mat
 SCell = repmat({S}, 1, nC);
@@ -22,6 +26,10 @@ tstop = 3*24; %final time.
 xOut = Run_SSA(w_k_x,S,x,tstop,nC, neighMat,Grid,VGR,VI,basalDeathRate, infDeathRate,varargin{:}); % call code to run stochastic simulation.
 
 function x = Run_SSA(prop_fun,S,x0,tstop,nC,neighMat,Grid,VGR,VI,basalDeathRate, infDeathRate, varargin)
+
+
+global nReactions nSpecies
+
 t=0;
 x = x0;     %% Specify initial conditions
 
@@ -33,11 +41,11 @@ if arg.save && isempty(arg.savpath)
 end
 
 %Init params
-k=zeros(1,nC*3);
-k(2:3:end)=basalDeathRate;%basal death rate
+k=zeros(1,nC*nReactions);
+k(2:nReactions:end)=basalDeathRate;%basal death rate
 
 %vector of virus infection. 0 for healthy or dead cells. initial infection=1 for infected cells.
-v=x(2:4:end);
+v=x(2:nSpecies:end);
 
 if arg.plot
     figure('color','w')
@@ -55,12 +63,12 @@ while t<tstop
     if arg.plot
         if round(2*t)>frameNum
             frameNum=round(2*t);
-            scatter(ax1,Grid(logical(x(1:4:end)),1),Grid(logical(x(1:4:end)),2),150,'b','filled');
+            scatter(ax1,Grid(logical(x(1:nSpecies:end)),1),Grid(logical(x(1:nSpecies:end)),2),150,'b','filled');
             set(ax1,'xcolor','none','ycolor','none');
             hold on;
-            scatter(ax1,Grid(logical(x(2:4:end)),1),Grid(logical(x(2:4:end)),2),150,'r','filled');
-            scatter(ax1,Grid(logical(x(3:4:end)),1),Grid(logical(x(3:4:end)),2),150,'k','filled');
-            scatter(ax1,Grid(logical(x(4:4:end)),1),Grid(logical(x(4:4:end)),2),150,'g','filled');
+            scatter(ax1,Grid(logical(x(2:nSpecies:end)),1),Grid(logical(x(2:nSpecies:end)),2),150,'r','filled');
+            scatter(ax1,Grid(logical(x(3:nSpecies:end)),1),Grid(logical(x(3:nSpecies:end)),2),150,'k','filled');
+            scatter(ax1,Grid(logical(x(4:nSpecies:end)),1),Grid(logical(x(4:nSpecies:end)),2),150,'g','filled');
             axis equal;
             tl = title(['T = ' sprintf('%.1f',frameNum/2) 'h']);
             tl.Position(2)=10.5;
@@ -88,12 +96,12 @@ while t<tstop
     end
     
     %update k
-    NNvLoad = neighMat*(v(:).*x(2:4:end));
-    k(1:3:end) = VI./(1+1./NNvLoad);  %infection \propto virus load of NN
-    k(3:3:end) = infDeathRate;%./(1+1./v); %virus induced death \propto viral load of self
+    NNvLoad = neighMat*(v(:).*x(2:nSpecies:end));
+    k(1:nReactions:end) = VI./(1+1./NNvLoad);  %infection \propto virus load of NN
+    k(3:nReactions:end) = infDeathRate;%./(1+1./v); %virus induced death \propto viral load of self
     
     %Propensity functions: all the probabilities of all the reactions
-    w = reshape(cell2mat(arrayfun(@(y,z) prop_fun(y{:},z{:}), mat2cell(x(:),4*ones(1,nC)), mat2cell(k(:),3*ones(1,nC)),'uniformoutput', false))',1,[]);%sorry for the oneliner
+    w = reshape(cell2mat(arrayfun(@(y,z) prop_fun(y{:},z{:}), mat2cell(x(:),nSpecies*ones(1,nC)), mat2cell(k(:),nReactions*ones(1,nC)),'uniformoutput', false))',1,[]);%sorry for the oneliner
     w0 = sum(w);                               % sum of the prop. functions
     dt = 1/w0*log(1/rand);          %when's the next reaction?
     t = t+dt;                       % update time of next reaction, exp dist
@@ -104,7 +112,7 @@ while t<tstop
             i=i+1;
         end
         x = x+S(:,i);                                 % update the configuration
-        v = v+VGR*dt*x(2:4:end);                      % increase viral load for infected live cells
+        v = v+VGR*dt*x(2:nSpecies:end);                      % increase viral load for infected live cells
     end
     
 end
