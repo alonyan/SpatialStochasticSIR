@@ -102,7 +102,6 @@ if arg.save
 end
 frameNum=-1;
 
-dists = {};
 cellsInPlay = [];
 while t<tstop
 
@@ -110,15 +109,14 @@ while t<tstop
         if round(2*t)>frameNum
             cla
             frameNum=round(2*t);
-            scatter(ax1,Grid(logical(x(1:nSpecies:end)),1),Grid(logical(x(1:nSpecies:end)),3),30,infDeathRate(logical(x(1:nSpecies:end))),'filled','MarkerFaceAlpha', 0.2);
+            scatter(ax1,Grid(logical(x(1:nSpecies:end)),2),Grid(logical(x(1:nSpecies:end)),3),30,infDeathRate(logical(x(1:nSpecies:end))),'filled','MarkerFaceAlpha', 0.2);
             set(ax1,'xcolor','none','ycolor','none','CLim',[0,1]);
             colormap('parula')
             hold on;
-            scatter(ax1,Grid(logical(x(2:nSpecies:end)),1),Grid(logical(x(2:nSpecies:end)),3),30,'r','filled','MarkerFaceAlpha', 0.8);
-            scatter(ax1,Grid(logical(x(3:nSpecies:end)),1),Grid(logical(x(3:nSpecies:end)),3),30,'k','filled','MarkerFaceAlpha', 0.4);
-            scatter(ax1,Grid(logical(x(4:nSpecies:end)),1),Grid(logical(x(4:nSpecies:end)),3),30,'g','filled','MarkerFaceAlpha', 0.6);
-            scatter(ax1,Grid(logical(x(5:nSpecies:end)),1),Grid(logical(x(5:nSpecies:end)),3),30,'y','filled','MarkerFaceAlpha', 0.6);
-            axis equal;
+            scatter(ax1,Grid(logical(x(2:nSpecies:end)),2),Grid(logical(x(2:nSpecies:end)),3),30,'r','filled','MarkerFaceAlpha', 0.8);
+            scatter(ax1,Grid(logical(x(3:nSpecies:end)),2),Grid(logical(x(3:nSpecies:end)),3),30,'k','filled','MarkerFaceAlpha', 0.4);
+            scatter(ax1,Grid(logical(x(4:nSpecies:end)),2),Grid(logical(x(4:nSpecies:end)),3),30,'g','filled','MarkerFaceAlpha', 0.6);
+            scatter(ax1,Grid(logical(x(5:nSpecies:end)),2),Grid(logical(x(5:nSpecies:end)),3),30,'y','filled','MarkerFaceAlpha', 0.6);
             tl = title(['T = ' sprintf('%.1f',frameNum/2) 'h']);
             %tl.Position(2)=10.5;
             
@@ -130,7 +128,10 @@ while t<tstop
                 for i=6:10;
                     hlobj(i).Children.MarkerSize=10;
                 end
-                
+                cb = colorbar('Position',[0.8,0.15, 0.05, 0.4]);
+                cb.Label.String = 'TNF\alpha';
+                cb.Ticks = [0 0.5 1];
+                cb.TickLabels = {'Low','Medium','High'};
             %    an = annotation('textbox',[0.7, 0.1, 0.14, 0.5],'String',{['VI=' num2str(VI,2)], ['BasalDeathRate=' num2str(basalDeathRate,2)], ['InfectedDeathRate=' num2str(infDeathRate,2)], ['VGR=' num2str(VGR,2)]},'LineStyle','none', 'Fontsize', 12);
             end
             

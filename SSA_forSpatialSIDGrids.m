@@ -36,6 +36,11 @@ x = x0;     %% Specify initial conditions
 arg.plot=ParseInputs('plot', false,varargin);
 arg.save=ParseInputs('save', false,varargin);
 arg.savpath=ParseInputs('savpath', '',varargin);
+if ~isempty(arg.savpath)
+    arg.save = true;
+end
+arg.TNF=ParseInputs('TNF', '',varargin);
+
 if arg.save && isempty(arg.savpath)
     error('If you want to save you must specify a savpath argument')
 end
@@ -48,8 +53,8 @@ k(2:nReactions:end)=basalDeathRate;%basal death rate
 v=x(2:nSpecies:end);
 
 if arg.plot
-    figure('color','w')
-    ax1 = axes( 'Units', 'Inches','position',[0.5 0.5 4.8 4.8]);
+    figure('Position',[50 50 800 800] ,'color','k')
+    ax1 = axes('position',[0.02,0.1,0.6,0.6],'color', 'k');
 end
 
 if arg.save
@@ -64,25 +69,33 @@ while t<tstop
         if round(2*t)>frameNum
             frameNum=round(2*t);
             scatter(ax1,Grid(logical(x(1:nSpecies:end)),1),Grid(logical(x(1:nSpecies:end)),2),150,'b','filled');
-            set(ax1,'xcolor','none','ycolor','none');
+            set(ax1,'xcolor','none','ycolor','none', 'color', 'k');
             hold on;
             scatter(ax1,Grid(logical(x(2:nSpecies:end)),1),Grid(logical(x(2:nSpecies:end)),2),150,'r','filled');
-            scatter(ax1,Grid(logical(x(3:nSpecies:end)),1),Grid(logical(x(3:nSpecies:end)),2),150,'k','filled');
+            scatter(ax1,Grid(logical(x(3:nSpecies:end)),1),Grid(logical(x(3:nSpecies:end)),2),150,[0.5 0.5 0.5],'filled');
             scatter(ax1,Grid(logical(x(4:nSpecies:end)),1),Grid(logical(x(4:nSpecies:end)),2),150,'g','filled');
             axis equal;
             tl = title(['T = ' sprintf('%.1f',frameNum/2) 'h']);
             tl.Position(2)=10.5;
+            tl.Color = 'w';
             
             if t==0
-                [hl, hlobj] = legend('Healthy','Infected','False positive','Dead post infection');
-                hl.Position = [0.8, 0.7, 0.14, 0.2];
-                hl.Box = 'off';
-                hl.FontSize = 14;
-                for i=5:8;
-                    hlobj(i).Children.MarkerSize=10;
+                if ~isempty(arg.TNF)
+                   an = annotation('textbox',[0.5, 0.7, 0.14, 0.05],'String',{['TNF=' num2str(arg.TNF) 'ng/ml']},'LineStyle','none', 'Fontsize', 24,'color','w');
                 end
-                
-                an = annotation('textbox',[0.7, 0.1, 0.14, 0.5],'String',{['VI=' num2str(VI,2)], ['BasalDeathRate=' num2str(basalDeathRate,2)], ['InfectedDeathRate=' num2str(infDeathRate,2)], ['VGR=' num2str(VGR,2)]},'LineStyle','none', 'Fontsize', 12);
+                [hl, hlobj] = legend('Healthy','Infected','Dead Bystander','Dead post infection');
+                hl.Position = [0.7, 0.5, 0.14, 0.2];
+                hl.Box = 'off';
+
+                hl.FontSize = 14;
+                for i=1:4;
+                    hlobj(i).Color='w';
+                    hlobj(i).FontSize=20;
+                end
+                for i=5:8;
+                    hlobj(i).Children.MarkerSize=12;
+                end
+
             end
             
             drawnow
