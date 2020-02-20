@@ -10,15 +10,23 @@ IDX = cellfun(@(x,y) x(y>0), IDX,D,'uniformoutput',false);
 pointsToMatch = arrayfun(@(x,y) repmat(x,y,1),1:numel(IDX), cellfun(@numel,IDX)','UniformOutput', false);
 nnMatrix = sparse(cat(1,pointsToMatch{:}), cat(2,IDX{:})',1, nCells,nCells);
 
+%%
+load('/bigstore/GeneralStorage/Alon/Figures/R01June2019/DataForPlots.mat')
+nReactions = 3;
+nSpecies = 5;
 %% Init cells, small frac infected
 fracInf = 0.0001;
 infected = rand(nCells,1)<fracInf;
 
-fracMacs = 0.005;
+fracMacs = 0.015;
 Macs = rand(nCells,1)<fracMacs;
 
 x= [~infected.*~Macs, infected.*~Macs, zeros(nCells,1), zeros(nCells,1), Macs]';
 x = x(:);
+
+
+nReactions = 3;
+nSpecies = 5;
 
 %
 %x = DataForPlots.Macs05.xInit
@@ -26,8 +34,6 @@ x = x(:);
 Macs = logical(x(5:nSpecies:end))
 infected = logical(x(2:nSpecies:end))
 
-nReactions = 3;
-nSpecies = 5;
 
 MacCents = A(Macs,:);
 searchRadiusVirus = 200;
@@ -91,7 +97,7 @@ VI = 1/2; %viral infectivity
 sum(reshape(xOut,nSpecies,[]),2)./sum(sum(reshape(xOut,nSpecies,[]),2))
 
 %%
-condName = 'Macs0'
+condName = 'Macs15_2'
 DataForPlots.(condName).initDeathRate = 1./Lifetimes;
 DataForPlots.(condName).xOut = xOut;
 DataForPlots.(condName).xInit = xinitial;
@@ -100,7 +106,7 @@ DataForPlots.(condName).fracInf = fracInf;
 DataForPlots.(condName).fracMacs = fracMacs;
 
 %%
-condName = 'Macs0'
+condName = 'Macs15_2'
 x = DataForPlots.(condName).xOut;
 infDeathRate = DataForPlots.(condName).infDeathRate;
 figure('color','w')

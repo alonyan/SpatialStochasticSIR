@@ -21,7 +21,8 @@ nC = numel(x)/nSpecies;
 SCell = repmat({S}, 1, nC);
 S = sparse(blkdiag(SCell{:}));
 
-tstop = 3*24; %final time.
+tstop = ParseInputs('tstop', 2*24, varargin);%finaltime
+
 
 xOut = Run_SSA(w_k_x,S,x,tstop,nC, neighMat,Grid,VGR,VI,basalDeathRate, infDeathRate,varargin{:}); % call code to run stochastic simulation.
 
@@ -53,8 +54,11 @@ k(2:nReactions:end)=basalDeathRate;%basal death rate
 v=x(2:nSpecies:end);
 
 if arg.plot
-    figure('Position',[50 50 800 800] ,'color','k')
-    ax1 = axes('position',[0.02,0.1,0.6,0.6],'color', 'k');
+    figure('color','w','Position',[100,100, 450, 450])
+    ax1 = axes('position',[0.02,0.1,0.5,0.5]);
+    set(gcf, 'renderer', 'painters');
+    pointSize = 40;
+    lineSize = 2;
 end
 
 if arg.save
@@ -66,25 +70,42 @@ frameNum=-1;
 while t<tstop
     
     if arg.plot
-        if round(2*t)>frameNum
-            frameNum=round(2*t);
-            scatter(ax1,Grid(logical(x(1:nSpecies:end)),1),Grid(logical(x(1:nSpecies:end)),2),150,'b','filled');
-            set(ax1,'xcolor','none','ycolor','none', 'color', 'k');
+        
+        liveColor = [64,224,208]/255; %cyan
+        virusColor = [148, 0, 211]/255; %purple
+        deathColor = [255,165,0]/255; %orange
+        deadinfColor = [0.4 0.4 0.4]; % pink
+        if round(4*t)>frameNum
+            frameNum=round(4*t);
+            h(1) = scatter(Grid(logical(x(1:4:end)),1),Grid(logical(x(1:4:end)),2),pointSize,liveColor,'filled')
+            h(1).MarkerEdgeColor = liveColor;
             hold on;
-            scatter(ax1,Grid(logical(x(2:nSpecies:end)),1),Grid(logical(x(2:nSpecies:end)),2),150,'r','filled');
-            scatter(ax1,Grid(logical(x(3:nSpecies:end)),1),Grid(logical(x(3:nSpecies:end)),2),150,[0.5 0.5 0.5],'filled');
-            scatter(ax1,Grid(logical(x(4:nSpecies:end)),1),Grid(logical(x(4:nSpecies:end)),2),150,'g','filled');
+            h(2) = scatter(Grid(logical(x(2:4:end)),1),Grid(logical(x(2:4:end)),2),pointSize,virusColor,'filled')
+            h(2).MarkerEdgeColor = virusColor;
+            h(3) = scatter(Grid(logical(x(3:4:end)),1),Grid(logical(x(3:4:end)),2),pointSize,deathColor,'filled')
+            h(3).MarkerEdgeColor = deathColor;
+            h(4) = scatter(Grid(logical(x(4:4:end)),1),Grid(logical(x(4:4:end)),2),pointSize,deathColor,'filled')
+            h(4).MarkerEdgeColor = virusColor;
+            for ii=1:4
+                h(ii).LineWidth = lineSize;
+            end
+            
+            
             axis equal;
-            tl = title(['T = ' sprintf('%.1f',frameNum/2) 'h']);
+            set(ax1,'xcolor','none','ycolor','none');
+
+            tl = title(['T = ' sprintf('%.2f',frameNum/4) 'h']);
             tl.Position(2)=10.5;
-            tl.Color = 'w';
+            tl.Color = 'k';
             
             if t==0
                 if ~isempty(arg.TNF)
-                   an = annotation('textbox',[0.5, 0.7, 0.14, 0.05],'String',{['TNF=' num2str(arg.TNF) 'ng/ml']},'LineStyle','none', 'Fontsize', 24,'color','w');
+                   an = annotation('textbox',[0.5, 0.7, 0.14, 0.05],'String',{['TNF=' num2str(arg.TNF) 'ng/ml']},'LineStyle','none', 'Fontsize', 24,'color','k');
                 end
-                [hl, hlobj] = legend('Healthy','Infected','Dead Bystander','Dead post infection');
-                hl.Position = [0.7, 0.5, 0.14, 0.2];
+                
+                hl = legend('   Healthy','   Infected','   Dead Bystander','   Dead post infection');
+                hl.Location = 'northeastoutside';
+                hl.Position = [0.63    0.4    0.3    0.2046];
                 hl.Box = 'off';
 
                 hl.FontSize = 14;
@@ -111,7 +132,7 @@ while t<tstop
     %update k
     NNvLoad = neighMat*(v(:).*x(2:nSpecies:end));
     k(1:nReactions:end) = VI./(1+1./NNvLoad);  %infection \propto virus load of NN
-    k(3:nReactions:end) = infDeathRate;%./(1+1./v); %virus induced death \propto viral load of self
+    k(3:nReactions:end) = infDeathRate; %virus induced death is a constants
     
     %Propensity functions: all the probabilities of all the reactions
     w = reshape(cell2mat(arrayfun(@(y,z) prop_fun(y{:},z{:}), mat2cell(x(:),nSpecies*ones(1,nC)), mat2cell(k(:),nReactions*ones(1,nC)),'uniformoutput', false))',1,[]);%sorry for the oneliner
