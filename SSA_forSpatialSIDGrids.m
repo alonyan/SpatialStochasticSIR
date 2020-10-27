@@ -1,12 +1,12 @@
-function xOut = SSA_forSpatialSIDGrids(x,neighMat,Grid,VGR,VI,basalDeathRate,infDeathRate, varargin)
+function [xOut, loadWhenInf, R0, InfectedDyn] = SSA_forSpatialSIDGrids(x,neighMat,Grid,VGR,VI,basalDeathRate,infDeathRate, varargin)
 % Define propensity functions in terms of parameters, k, and states, x.
 % each cell can be in 4 states - SIDF
 w_k_x = @(x,k) [k(1)*x(1), k(2)*x(1), k(3)*x(2)];
 % Specify stoichiometry
 S = [ -1 -1  0 ;...
-    1  0 -1 ;...
-    0  1  0 ;
-    0  0  1];
+       1  0 -1 ;...
+       0  1  0 ;
+       0  0  1];
 
 %reactions: infection, false positive death, infected death
 
@@ -21,15 +21,16 @@ nC = numel(x)/nSpecies;
 SCell = repmat({S}, 1, nC);
 S = sparse(blkdiag(SCell{:}));
 
-tstop = ParseInputs('tstop', 2*24, varargin);%finaltime
+tstop = ParseInputs('tstop', 48, varargin);%finaltime
 
 
-xOut = Run_SSA(w_k_x,S,x,tstop,nC, neighMat,Grid,VGR,VI,basalDeathRate, infDeathRate,varargin{:}); % call code to run stochastic simulation.
+[xOut, loadWhenInf, R0, InfectedDyn] = Run_SSA(w_k_x,S,x,tstop,nC, neighMat,Grid,VGR,VI,basalDeathRate, infDeathRate,varargin{:}); % call code to run stochastic simulation.
 
-function x = Run_SSA(prop_fun,S,x0,tstop,nC,neighMat,Grid,VGR,VI,basalDeathRate, infDeathRate, varargin)
+function [x, loadWhenInf, R0, Dyn] = Run_SSA(prop_fun,S,x0,tstop,nC,neighMat,Grid,VGR,VI,basalDeathRate, infDeathRate, varargin)
 
 
 global nReactions nSpecies
+Dyn = struct('t',[],'infected',[],'infDead',[]);
 
 t=0;
 x = x0;     %% Specify initial conditions
@@ -49,7 +50,10 @@ end
 %Init params
 k=zeros(1,nC*nReactions);
 k(2:nReactions:end)=basalDeathRate;%basal death rate
+k(3:nReactions:end) = infDeathRate; %virus induced death 
 
+
+loadWhenInf = cell(size(neighMat,1),1);
 %vector of virus infection. 0 for healthy or dead cells. initial infection=1 for infected cells.
 v=x(2:nSpecies:end);
 
@@ -127,12 +131,18 @@ while t<tstop
                 writeVideo(outputVideo,im);
             end
         end
+    else
+        if round(4*t)>frameNum
+            frameNum=round(4*t);
+            Dyn.infected = [Dyn.infected, numel(find(x(2:4:end)))];
+            Dyn.infDead = [Dyn.infDead, numel(find(x(4:4:end)))];
+            Dyn.t = [Dyn.t, t];
+        end
     end
     
     %update k
     NNvLoad = neighMat*(v(:).*x(2:nSpecies:end));
     k(1:nReactions:end) = VI./(1+1./NNvLoad);  %infection \propto virus load of NN
-    k(3:nReactions:end) = infDeathRate; %virus induced death is a constants
     
     %Propensity functions: all the probabilities of all the reactions
     w = reshape(cell2mat(arrayfun(@(y,z) prop_fun(y{:},z{:}), mat2cell(x(:),nSpecies*ones(1,nC)), mat2cell(k(:),nReactions*ones(1,nC)),'uniformoutput', false))',1,[]);%sorry for the oneliner
@@ -146,10 +156,32 @@ while t<tstop
             i=i+1;
         end
         x = x+S(:,i);                                 % update the configuration
+        if mod(i,3)==1
+           loadWhenInf{ceil(i/3)} = neighMat(ceil(i/3),:).*v';
+        end
         v = v+VGR*dt*x(2:nSpecies:end);                      % increase viral load for infected live cells
     end
     
 end
+
+NNLoad = loadWhenInf;
+C1 = cellfun(@(x) x./sum(x), NNLoad, 'UniformOutput', false);
+indsOfCellsThatGotInfected = find(~cellfun(@isempty, NNLoad));
+
+cellsIInfected = zeros(size(NNLoad));
+
+for i=indsOfCellsThatGotInfected'
+[~,ind,prob] = find(C1{i});
+cellsIInfected(ind) = cellsIInfected(ind) + prob';
+end
+
+a = k(1:nReactions:end)./ infDeathRate;%k(3:nReactions:end);
+a(a==0)=[];
+R0 = mean(a);
+if isnan(R0)
+    R0=0;
+end
+
 if arg.save
     close(outputVideo);
 end
